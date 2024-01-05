@@ -13,8 +13,8 @@
 #    under the License.
 
 from neutron_lib.plugins import directory
+from neutron_lib.db import standard_attr
 
-from neutron.db import standard_attr
 from neutron.extensions import tagging
 
 
