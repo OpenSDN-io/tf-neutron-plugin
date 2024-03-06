@@ -1,5 +1,5 @@
 [gerrit]
 host=gerrit.opensdn.io
 port=29418
-project=tungstenfabric/tf-neutron-plugin.git
+project=opensdn-io/tf-neutron-plugin.git
 defaultbranch=master
