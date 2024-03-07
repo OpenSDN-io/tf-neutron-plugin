@@ -397,13 +397,13 @@ class NeutronPluginContrailCoreBase(neutron_plugin_base_v2.NeutronPluginBaseV2,
 
     def _pre_create_network(self, context, network):
         # (gzimin): Here we can add all checks for networks
-        # before sending requests to the TungstenFabric side
+        # before sending requests to the OpenSDN side
 
         self._get_network_mtu(network)
 
     def _pre_update_network(self, context, network):
         # (gzimin): Here we can add all checks for networks
-        # before sending requests to the TungstenFabric side
+        # before sending requests to the OpenSDN side
 
         self._get_network_mtu(network)
 
