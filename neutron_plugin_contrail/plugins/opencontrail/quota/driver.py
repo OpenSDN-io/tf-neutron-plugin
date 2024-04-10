@@ -25,6 +25,7 @@ except ImportError:
 
 from neutron_plugin_contrail.common import utils
 
+
 LOG = logging.getLogger(__name__)
 
 DEFAULT_NEUTRON_QUOTA = -1
@@ -146,7 +147,38 @@ class QuotaDriver(object):
         :param resource: String with resource name.
         :param tenant_id: String with project ID
         """
-        return 0  # TODO(pawel.zadrozny): Find a way to count used resources
+        qn2c = cls.quota_neutron_to_contrail_type
+        try:
+            resource_name = qn2c[resource] + 's'
+            if resource_name == "floating_ips":
+                resource_fn = getattr(cls._get_vnc_conn(), qn2c[resource] + 's_list')
+                resources_obj = resource_fn(back_ref_id=str(uuid.UUID(tenant_id)))
+            elif resource_name == "subnets":
+                resource_fn = getattr(cls._get_vnc_conn(), "virtual_networks_list")
+                vns = resource_fn(parent_id=str(uuid.UUID(tenant_id)))['virtual-networks']
+                subnet_count = 0
+                for vn in vns:
+                    vn = cls._get_vnc_conn().virtual_network_read(id=vn['uuid'])
+                    vn_network_ipam_refs = vn.get_network_ipam_refs()
+                    for network_ipam in vn_network_ipam_refs:
+                        subnet_count += len(network_ipam['attr'].get_ipam_subnets())
+                return subnet_count
+            elif resource_name == "security_group_rules":
+                resource_fn = getattr(cls._get_vnc_conn(), "security_groups_list")
+                sgs = resource_fn(parent_id=str(uuid.UUID(tenant_id)))['security-groups']
+                sgr_count = 0
+                for sg in sgs:
+                    sgr = cls._get_vnc_conn().security_group_read(id=sg['uuid'])
+                    sgr_count += len(sgr.get_security_group_entries().get_policy_rule())
+                return sgr_count
+            else:
+                resource_fn = getattr(cls._get_vnc_conn(), qn2c[resource] + 's_list')
+                resources_obj = resource_fn(parent_id=str(uuid.UUID(tenant_id)))
+            resource_list = resources_obj.get(resource_name.replace('_', '-'), [])
+            return len(resource_list)
+        except KeyError:
+            LOG.debug("Resource type %s not found", resource)
+            return 0
     # end _get_used_quota
 
     @classmethod
