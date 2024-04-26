@@ -293,6 +293,7 @@ class QuotaDriver(object):
     def cancel_reservation(self, context, reservation_id):
         """Tnis is a noop as this driver does not support reservations."""
 
+    @classmethod
     def get_project_quotas(cls, context, resources, tenant_id=None):
         # Have no clue what quota really needed, since TF have it's own quotas too
         return cls.get_default_quotas(context, resources, tenant_id)
