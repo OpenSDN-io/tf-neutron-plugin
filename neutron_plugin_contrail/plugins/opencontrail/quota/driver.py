@@ -160,8 +160,9 @@ class QuotaDriver(object):
                 for vn in vns:
                     vn = cls._get_vnc_conn().virtual_network_read(id=vn['uuid'])
                     vn_network_ipam_refs = vn.get_network_ipam_refs()
-                    for network_ipam in vn_network_ipam_refs:
-                        subnet_count += len(network_ipam['attr'].get_ipam_subnets())
+                    if vn_network_ipam_refs:
+                        for network_ipam in vn_network_ipam_refs:
+                            subnet_count += len(network_ipam['attr'].get_ipam_subnets())
                 return subnet_count
             elif resource_name == "security_group_rules":
                 resource_fn = getattr(cls._get_vnc_conn(), "security_groups_list")
@@ -177,7 +178,7 @@ class QuotaDriver(object):
             resource_list = resources_obj.get(resource_name.replace('_', '-'), [])
             return len(resource_list)
         except KeyError:
-            LOG.debug("Resource type %s not found", resource)
+            LOG.error("Resource type %s not found", resource)
             return 0
     # end _get_used_quota
 
@@ -210,18 +211,22 @@ class QuotaDriver(object):
         :param resources: A dictionary of the registered resource keys.
         :param tenant_id: The ID of the tenant to return quotas for.
         """
+        # when domain quota requested tenant_id will hold id of the domain,
+        # which is not uuid string, but simple string like "default". Since
+        # we don't yet have domain quotas we'll return {} for now.
         try:
             project_id = str(uuid.UUID(tenant_id))
         except ValueError:
+            LOG.error(f"Tenant id {tenant_id} is not UUID.")
             return {}
         try:
             project = cls._get_vnc_conn().project_read(id=project_id)
         except vnc_exc.NoIdError:
+            LOG.error(f"Project {project_id} not found. Cannot get quota")
             return {}
         except Exception as exc:
             cgitb.Hook(format="text").handle(sys.exc_info())
             raise exc
-
         project_quotas = project.get_quota()
         qn2c = cls.quota_neutron_to_contrail_type
 
@@ -295,16 +300,17 @@ class QuotaDriver(object):
 
     @classmethod
     def get_project_quotas(cls, context, resources, tenant_id=None):
-        # Have no clue what quota really needed, since TF have it's own quotas too
-        return cls.get_default_quotas(context, resources, tenant_id)
+        return cls._get_tenant_quotas(context, resources, tenant_id)
 
     @classmethod
-    def get_default_quotas(cls, context, resources, tenant_id=None):
+    def get_default_quotas(cls, context, resources, tenant_id=None, project_id=None):
         """Given a list of resources, retrieve the default quotas set for
-        a tenant.
+        a tenant. Tenant and project id's needed for compatibility with
+        openstack cli, but tf don't have default quotas for specific project.
         :param context: The request context, for access checks.
         :param resources: A dictionary of the registered resource keys.
         :param tenant_id: The ID of the tenant to return default quotas for.
+        :param project_id: The ID of the tenant to return default quotas for.
         :return: dict from resource name to dict of name and limit
         """
         try:
