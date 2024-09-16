@@ -21,7 +21,7 @@ sdist_depends = []
 sdist_depends.extend(setup_sources_rules)
 
 sdist_gen = env.Command('dist/neutron-plugin-%s.tar.gz' % env.GetPyVersion(),
-                        'setup.py', cd_cmd + 'python setup.py sdist')
+                        'setup.py', cd_cmd + 'python3 setup.py sdist')
 env.Depends(sdist_gen, sdist_depends)
 
 test_target = env.SetupPyTestSuite(sdist_gen, use_tox=True)
