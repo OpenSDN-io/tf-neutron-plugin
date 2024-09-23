@@ -12,8 +12,6 @@
 # implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import absolute_import, unicode_literals
-
 import datetime
 import uuid
 import mock
