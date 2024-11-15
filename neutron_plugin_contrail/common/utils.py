@@ -12,7 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 import requests
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 from oslo_config import cfg
 from vnc_api.vnc_api import VncApi

@@ -15,8 +15,6 @@
 import json
 import uuid as UUID
 
-from six import itervalues
-
 from vnc_api import exceptions as vnc_exc
 import netaddr
 from vnc_api import vnc_api
@@ -161,7 +159,7 @@ class MockVnc(object):
 
     class CreateCallables(Callables):
         def _check_if_uuid_in_use(self, uuid_value):
-            for res_dict in itervalues(self._resource_collection):
+            for res_dict in self._resource_collection.values():
                 if uuid_value in res_dict:
                     return True
             return False

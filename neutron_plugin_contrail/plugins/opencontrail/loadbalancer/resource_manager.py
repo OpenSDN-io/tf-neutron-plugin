@@ -2,9 +2,8 @@
 # Copyright (c) 2014 Juniper Networks, Inc. All rights reserved.
 #
 
-import six
 import uuid
-from abc import ABCMeta, abstractmethod, abstractproperty
+from abc import ABCMeta, abstractmethod
 from eventlet import greenthread
 
 try:
@@ -50,14 +49,14 @@ class EntityInUse(InUse):
     message = "%(name)s %(id)s is in use"
 
 
-@six.add_metaclass(ABCMeta)
-class ResourceManager(object):
+class ResourceManager(metaclass=ABCMeta):
     _max_project_read_attempts = 3
 
     def __init__(self, api):
         self._api = api
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def property_type_mapping(self):
         """ Mapping from property name to neutron dict key.
         """
@@ -100,25 +99,29 @@ class ResourceManager(object):
         """
         pass
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def get_exception_notfound(self, id):
         """ Returns the correct NotFound exception.
         """
         pass
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def get_exception_inuse(self, id):
         """ Returns the correct NotFound exception.
         """
         pass
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def neutron_name(self):
         """ Resource name in a request from neutron.
         """
         pass
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def resource_name_plural(self):
         """ Resource list name in a list response from api server.
         """
