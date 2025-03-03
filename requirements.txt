@@ -1,4 +1,2 @@
-python-neutronclient
-keystoneauth1<5.1.0
+keystoneauth1
 contrail-api-client
-openstacksdk<2.0.0
