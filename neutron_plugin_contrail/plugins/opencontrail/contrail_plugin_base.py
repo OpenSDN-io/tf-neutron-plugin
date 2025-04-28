@@ -586,6 +586,9 @@ class NeutronPluginContrailCoreBase(neutron_plugin_base_v2.NeutronPluginBaseV2,
 
         return self._get_resource('security_group', context, sg_id, fields)
 
+    def get_default_security_group(self, context, project_id):
+        pass
+
     def update_security_group(self, context, sg_id, security_group):
         """Updates the attributes of a security group."""
 
