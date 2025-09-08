@@ -1,2 +1,3 @@
 keystoneauth1
-contrail-api-client
+simplejson
+contrail-api-client==0.1.dev0

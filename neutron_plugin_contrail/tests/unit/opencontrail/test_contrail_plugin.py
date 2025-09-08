@@ -475,6 +475,27 @@ class TestContrailSubnetsV2(test_plugin.TestSubnetsV2,
     def test_list_subnets_filtering_by_project_id(self):
         self.skipTest("TODO: First sequence contains 2 additional elements")
 
+    def test_create_subnet_bad_pools(self):
+        self.skipTest("Contrail does not support updating allocation pools")
+
+    def test_create_subnet_default_gw_conflict_allocation_pool_returns_409(self):
+        self.skipTest("Contrail does not support updating allocation pools")
+
+    def test_create_subnet_gateway_in_allocation_pool_returns_409(self):
+        self.skipTest("Contrail does not support updating allocation pools")
+
+    def test_create_subnet_invalid_allocation_pool_returns_400(self):
+        self.skipTest("Contrail does not support updating allocation pools")
+
+    def test_create_subnet_out_of_range_allocation_pool_returns_400(self):
+        self.skipTest("Contrail does not support updating allocation pools")
+
+    def test_create_subnet_overlapping_allocation_pools_returns_409(self):
+        self.skipTest("Contrail does not support updating allocation pools")
+
+    def test_subnet_with_allocation_range(self):
+        self.skipTest("Contrail does not support updating allocation pools")
+
 
 class TestContrailPortsV2(test_plugin.TestPortsV2,
                           JVContrailPluginTestCase):
@@ -1151,6 +1172,9 @@ class TestContrailL3NatTestCase(JVContrailPluginTestCase,
         self.skipTest("TODO: method '_get_external_gateway_info' "
                       "in 'router_res_handler.py doesn't "
                       "return 'external_fixed_ips' field")
+
+    def test_router_set_gateway_cidr_overlapped_with_subnets(self):
+        self.skipTest("Not supported test case")
 
 
 class ContrailPluginV2Test(unittest.TestCase):
