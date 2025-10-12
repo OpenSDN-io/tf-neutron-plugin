@@ -2,28 +2,14 @@
 
 env = DefaultEnvironment()
 
-setup_sources = [
-    'setup.py',
-    'MANIFEST.in',
-    'requirements.txt',
-    'test-requirements.txt',
-    'tox.ini',
-    '.stestr.conf',
-    'neutron_plugin_contrail',
+base_path = '#openstack/neutron_plugin/'
+
+sdist_gen = env.Command(
+    '/pip/neutron_plugin_contrail-0.1.dev0-py3-none-any.whl', 'setup.py',
+    'cd ' + Dir(base_path).path + ' && ' + 'python3 setup.py bdist_wheel --dist-dir /pip')
+env.Alias('install', sdist_gen)
+
+deps = [
+    '/pip/contrail_api_client-0.1.dev0-py3-none-any.whl',
 ]
-setup_sources_rules = [
-    env.Install(Dir('.'), "#/openstack/neutron_plugin/" + file)
-    for file in setup_sources
-]
-
-cd_cmd = 'cd ' + Dir('.').path + ' && '
-sdist_depends = []
-sdist_depends.extend(setup_sources_rules)
-
-sdist_gen = env.Command('dist/neutron-plugin-%s.tar.gz' % env.GetPyVersion(),
-                        'setup.py', cd_cmd + 'python3 setup.py sdist')
-env.Depends(sdist_gen, sdist_depends)
-
-test_target = env.SetupPyTestSuite(sdist_gen, use_tox=True)
-env.Depends(test_target, sdist_gen)
-env.Alias('openstack/neutron_plugin:test', test_target)
+env.SetupPyTestSuiteWithDeps(sdist_gen, sdist_depends=deps, top_dir=Dir(base_path).abspath)
