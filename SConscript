@@ -4,8 +4,11 @@ env = DefaultEnvironment()
 
 base_path = '#openstack/neutron_plugin/'
 
+sources = ['setup.py', 'requirements.txt']
+sources += env.AddPythonSources('neutron_plugin_contrail')
+
 sdist_gen = env.Command(
-    '/pip/neutron_plugin_contrail-0.1.dev0-py3-none-any.whl', 'setup.py',
+    '/pip/neutron_plugin_contrail-0.1.dev0-py3-none-any.whl', sources,
     'cd ' + Dir(base_path).path + ' && ' + 'python3 setup.py bdist_wheel --dist-dir /pip')
 env.Alias('install', sdist_gen)
 
