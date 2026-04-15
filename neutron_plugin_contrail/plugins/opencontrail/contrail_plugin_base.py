@@ -35,6 +35,10 @@ try:
 except ImportError:
     from neutron_lib.exceptions import NotAuthorized
 try:
+    from neutron.common.exceptions import SubnetPoolNotFound
+except ImportError:
+    from neutron_lib.exceptions import SubnetPoolNotFound
+try:
     from neutron.common import exceptions as neutron_exc
 except ImportError:
     from neutron_lib import exceptions as neutron_exc
@@ -323,6 +327,13 @@ class NeutronPluginContrailCoreBase(neutron_plugin_base_v2.NeutronPluginBaseV2,
 
     def _make_subnet_dict(self, subnet):
         return subnet
+
+    def get_subnetpools(self, context, filters=None, fields=None):
+        # OpenSDN does not support neutron subnetpools
+        return []
+
+    def get_subnetpool(self, context, subnet_id, fields=None):
+        raise SubnetPoolNotFound(id=subnet_id)
 
     def _get_subnet(self, context, subnet_id, fields=None):
         subnet = self._get_resource('subnet', context, subnet_id, fields)
