@@ -13,6 +13,8 @@
 #    under the License.
 #
 # @author: Hampapur Ajay, Praneet Bachheti, Rudra Rugge, Atul Moghe
+import collections
+
 import requests
 
 try:
@@ -54,6 +56,11 @@ _DEFAULT_SERVER_CONNECT = "http"
 _DEFAULT_SECURE_SERVER_CONNECT = "https"
 
 LOG = logging.getLogger(__name__)
+
+# Per-request cache of network dicts, keyed by request_id: cuts the get_port
+# per-row get_network() fan-out. ponytail: lock-free, assumes 1 eventlet worker.
+_NET_MEMO_MAX = 256  # max concurrent request_ids retained; internal cap, not tunable
+_NET_MEMO = collections.OrderedDict()
 
 
 class InvalidContrailExtensionError(ServiceUnavailable):
@@ -407,6 +414,30 @@ class NeutronPluginContrailCoreV2(plugin_base.NeutronPluginContrailCoreBase):
         LOG.debug("get_%(res_type)s_count(): %(res_count)r",
                   {'res_type': res_type, 'res_count': res_count})
         return res_count
+
+    def get_network(self, context, network_id, fields=None):
+        """Get a network, cached per request (see _NET_MEMO) to cut fan-out."""
+        # request_id, not the context: policy uses context.elevated() copies.
+        request_id = getattr(context, 'request_id', None)
+        if not request_id:
+            return super(NeutronPluginContrailCoreV2, self).get_network(
+                context, network_id, fields)
+
+        per_request = _NET_MEMO.get(request_id)
+        if per_request is None:
+            per_request = _NET_MEMO[request_id] = {}
+            while len(_NET_MEMO) > _NET_MEMO_MAX:
+                _NET_MEMO.popitem(last=False)
+        else:
+            _NET_MEMO.move_to_end(request_id)
+
+        network = per_request.get(network_id)
+        if network is None:
+            # Fetch the full dict once; it serves any later field subset.
+            network = per_request[network_id] = self._get_network(
+                context, network_id)
+        # Copy before pruning so the cached full dict is never mutated.
+        return self._prune(dict(network), fields)
 
     def add_router_interface(self, context, router_id, interface_info):
         """Add interface to a router."""
