@@ -38,6 +38,9 @@ class QuotaDriver(object):
     quota information. The default driver utilizes the default values
     in neutron.conf.
     """
+    _vnc_conn = None
+    _default_project_id = None
+
     quota_neutron_to_contrail_type = {
         'subnet': 'subnet',
         'network': 'virtual_network',
@@ -61,7 +64,11 @@ class QuotaDriver(object):
 
     @classmethod
     def _get_vnc_conn(cls):
-        return utils.get_vnc_api_instance()
+        # Reuse one VncApi per process; rebuilding it re-authenticated every
+        # call. ponytail: threaded mod_wsgi would need a lock.
+        if cls._vnc_conn is None:
+            cls._vnc_conn = utils.get_vnc_api_instance()
+        return cls._vnc_conn
     # end _get_vnc_conn
 
     def limit_check(self, context, tenant_id, resources, values):
@@ -154,23 +161,24 @@ class QuotaDriver(object):
                 resource_fn = getattr(cls._get_vnc_conn(), qn2c[resource] + 's_list')
                 resources_obj = resource_fn(back_ref_id=str(uuid.UUID(tenant_id)))
             elif resource_name == "subnets":
-                resource_fn = getattr(cls._get_vnc_conn(), "virtual_networks_list")
-                vns = resource_fn(parent_id=str(uuid.UUID(tenant_id)))['virtual-networks']
+                # detail list returns ipam refs; avoids a read per VN (N+1).
+                vns = cls._get_vnc_conn().virtual_networks_list(
+                    parent_id=str(uuid.UUID(tenant_id)), detail=True)
                 subnet_count = 0
                 for vn in vns:
-                    vn = cls._get_vnc_conn().virtual_network_read(id=vn['uuid'])
-                    vn_network_ipam_refs = vn.get_network_ipam_refs()
-                    if vn_network_ipam_refs:
-                        for network_ipam in vn_network_ipam_refs:
-                            subnet_count += len(network_ipam['attr'].get_ipam_subnets())
+                    for network_ipam in vn.get_network_ipam_refs() or []:
+                        subnet_count += len(
+                            network_ipam['attr'].get_ipam_subnets())
                 return subnet_count
             elif resource_name == "security_group_rules":
-                resource_fn = getattr(cls._get_vnc_conn(), "security_groups_list")
-                sgs = resource_fn(parent_id=str(uuid.UUID(tenant_id)))['security-groups']
+                # detail list returns rule entries; avoids a read per SG.
+                sgs = cls._get_vnc_conn().security_groups_list(
+                    parent_id=str(uuid.UUID(tenant_id)), detail=True)
                 sgr_count = 0
                 for sg in sgs:
-                    sgr = cls._get_vnc_conn().security_group_read(id=sg['uuid'])
-                    sgr_count += len(sgr.get_security_group_entries().get_policy_rule())
+                    entries = sg.get_security_group_entries()
+                    if entries:
+                        sgr_count += len(entries.get_policy_rule())
                 return sgr_count
             else:
                 resource_fn = getattr(cls._get_vnc_conn(), qn2c[resource] + 's_list')
@@ -314,8 +322,12 @@ class QuotaDriver(object):
         :return: dict from resource name to dict of name and limit
         """
         try:
+            # default-project uuid is immutable; resolve once, read value fresh.
+            if cls._default_project_id is None:
+                cls._default_project_id = cls._get_vnc_conn().fq_name_to_id(
+                    'project', ['default-domain', 'default-project'])
             project = cls._get_vnc_conn().project_read(
-                fq_name=['default-domain', 'default-project'])
+                id=cls._default_project_id)
             project_quotas = project.get_quota()
         except vnc_exc.NoIdError:
             project_quotas = None
